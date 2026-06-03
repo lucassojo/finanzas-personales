@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💸 Mis Finanzas — App de Gastos Personales Argentina
 
-## Getting Started
+App mobile-first para registrar gastos en lenguaje natural con IA (Groq + Llama 3.1), persistencia en Turso, y lista para deployar en Vercel.
 
-First, run the development server:
+## Stack
+
+- **Next.js 14** — App Router + TypeScript
+- **Tailwind CSS + shadcn/ui** — tema zinc oscuro premium
+- **Turso** — base de datos SQLite distribuida
+- **Groq API** — clasificación de gastos con `llama-3.1-8b-instant`
+- **Recharts** — gráficos de gastos
+- **Lucide React** — íconos
+
+## Setup local
+
+### 1. Clonar y configurar variables de entorno
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Completar .env.local con tus credenciales
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Editá `.env.local`:
+```env
+GROQ_API_KEY=tu_groq_api_key
+TURSO_DATABASE_URL=libsql://tu-db.turso.io
+TURSO_AUTH_TOKEN=tu_turso_token
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Instalar dependencias y correr
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+Abrí http://localhost:3000
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Inicializar la base de datos con datos de ejemplo (opcional)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+GET http://localhost:3000/api/seed?secret=init
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy en Vercel
 
-## Deploy on Vercel
+```bash
+# Subir a GitHub
+git init
+git add .
+git commit -m "finanzas app v1"
+git remote add origin https://github.com/TUUSUARIO/finanzas-personales.git
+git branch -M main
+git push -u origin main
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+En el dashboard de Vercel, agregar las variables de entorno:
+- `GROQ_API_KEY`
+- `TURSO_DATABASE_URL`  
+- `TURSO_AUTH_TOKEN`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Vercel despliega automático al detectar el push.
+
+## Páginas
+
+| Ruta | Descripción |
+|------|-------------|
+| `/` | Feed de gastos de hoy + input bar IA |
+| `/resumen` | Resumen mensual con gráficos |
+| `/config` | Sueldo y gestión de categorías |
+
+## APIs
+
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/clasificar` | POST | Clasifica texto con Groq y guarda gasto |
+| `/api/gastos` | GET/POST | Listar/crear gastos |
+| `/api/gastos/[id]` | PATCH/DELETE | Editar categoría / eliminar |
+| `/api/categorias` | GET/POST | Listar/crear categorías |
+| `/api/categorias/[id]` | PUT/DELETE | Editar/desactivar categoría |
+| `/api/ingresos` | GET/POST/DELETE | CRUD de ingresos |
+| `/api/seed?secret=init` | GET | Cargar datos de ejemplo |
+
+## Credenciales
+
+- **Groq**: https://console.groq.com
+- **Turso**: https://turso.tech
