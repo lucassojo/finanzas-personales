@@ -16,8 +16,8 @@ export async function PUT(
     });
 
     return NextResponse.json({ ok: true });
-  } catch (error: any) {
-    if (error?.message?.includes('UNIQUE')) {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes('UNIQUE')) {
       return NextResponse.json({ error: 'Ya existe una categoría con ese nombre' }, { status: 409 });
     }
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
@@ -36,7 +36,7 @@ export async function DELETE(
       args: [id],
     });
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

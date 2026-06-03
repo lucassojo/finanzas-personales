@@ -16,7 +16,7 @@ export async function GET() {
       created_at: String(r.created_at),
     }));
     return NextResponse.json({ ingresos });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         created_at: String(row.created_at),
       }
     }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -65,7 +65,7 @@ export async function DELETE(req: NextRequest) {
 
     await db.execute({ sql: 'DELETE FROM ingresos WHERE id = ?', args: [Number(id)] });
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

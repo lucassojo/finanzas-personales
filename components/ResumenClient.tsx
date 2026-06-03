@@ -99,7 +99,7 @@ export default function ResumenClient() {
 
   const esHoy = ahora.getFullYear() === anio && ahora.getMonth() + 1 === mes;
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { value: number }[] }) => {
     if (active && payload?.length) {
       return (
         <div className="bg-card border border-border rounded-xl px-3 py-2 text-xs">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Check, X, ChevronDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Categoria, Ingreso } from '@/lib/types';
 import { formatMonto, getNombreMes } from '@/lib/helpers';

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+
 import { Gasto } from '@/lib/types';
 import { formatMonto } from '@/lib/helpers';
 import { Trash2, Edit3, Check } from 'lucide-react';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useRef, KeyboardEvent } from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import GastoCard from '@/components/GastoCard';
 import FallbackForm from '@/components/FallbackForm';
@@ -23,10 +23,6 @@ export default function HoyClient({ gastosIniciales, categorias, totalHoy }: Hoy
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const catMap = categorias.reduce((acc, c) => {
-    acc[c.nombre] = c.emoji;
-    return acc;
-  }, {} as Record<string, string>);
 
   async function handleEnviar() {
     if (!texto.trim() || loading) return;
