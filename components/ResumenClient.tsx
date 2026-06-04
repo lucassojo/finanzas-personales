@@ -18,6 +18,32 @@ export default function ResumenClient() {
   const [ingresos, setIngresos] = useState<Ingreso[]>([]);
   const [inversiones, setInversiones] = useState<Inversion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeDay, setActiveDay] = useState<string | null>(null);
+
+  // Reset selected day on month change
+  useEffect(() => {
+    setActiveDay(null);
+  }, [mes, anio]);
+
+  const primerDiaMes = new Date(anio, mes - 1, 1).getDay();
+  const offset = primerDiaMes === 0 ? 6 : primerDiaMes - 1;
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+
+  const gridCells: { key: string; day: number | null; dateStr: string | null }[] = [];
+  for (let i = 0; i < offset; i++) {
+    gridCells.push({ key: `empty-${i}`, day: null, dateStr: null });
+  }
+  for (let d = 1; d <= diasEnMes; d++) {
+    const dateStr = `${anio}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    gridCells.push({ key: `day-${d}`, day: d, dateStr });
+  }
+
+  const formatFechaPretty = (fechaStr: string) => {
+    const [y, m, d] = fechaStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const rawStr = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return rawStr.charAt(0).toUpperCase() + rawStr.slice(1);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -337,42 +363,177 @@ export default function ResumenClient() {
             </div>
           </div>
 
-          {/* Right column — Desglose por categoría */}
-          <div className="glass-card rounded-2xl p-6">
-            <p className="text-sm font-semibold mb-5">Por categoría</p>
-            {loading ? (
-              <div className="space-y-3">
-                {[1,2,3,4].map(i => <div key={i} className="h-12 shimmer rounded-xl" />)}
-              </div>
-            ) : resumenCats.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-4xl mb-3">📭</p>
-                <p className="text-sm text-muted-foreground">Sin gastos este mes</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {resumenCats.map(cat => (
-                  <div key={cat.categoria}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-xl">{cat.emoji}</span>
-                        <span className="text-sm font-medium">{cat.categoria}</span>
+          {/* Right column — Desglose por categoría y Calendario de Gastos */}
+          <div className="space-y-5">
+            <div className="glass-card rounded-2xl p-6">
+              <p className="text-sm font-semibold mb-5">Por categoría</p>
+              {loading ? (
+                <div className="space-y-3">
+                  {[1,2,3,4].map(i => <div key={i} className="h-12 shimmer rounded-xl" />)}
+                </div>
+              ) : resumenCats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <p className="text-4xl mb-3">📭</p>
+                  <p className="text-sm text-muted-foreground">Sin gastos este mes</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {resumenCats.map(cat => (
+                    <div key={cat.categoria}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">{cat.emoji}</span>
+                          <span className="text-sm font-medium">{cat.categoria}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold amount-display">{formatMonto(cat.total)}</span>
+                          <span className="text-xs text-muted-foreground ml-1.5">{cat.porcentaje.toFixed(0)}%</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-bold amount-display">{formatMonto(cat.total)}</span>
-                        <span className="text-xs text-muted-foreground ml-1.5">{cat.porcentaje.toFixed(0)}%</span>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full progress-gradient rounded-full transition-all duration-700"
+                          style={{ width: `${cat.porcentaje}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div
-                        className="h-full progress-gradient rounded-full transition-all duration-700"
-                        style={{ width: `${cat.porcentaje}%` }}
-                      />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Calendario del Mes */}
+            <div className="glass-card rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-sm font-semibold">Calendario de Gastos 📅</p>
+                {activeDay && (
+                  <button 
+                    onClick={() => setActiveDay(null)}
+                    className="text-xs text-primary hover:underline transition-all"
+                  >
+                    Ver mes completo
+                  </button>
+                )}
+              </div>
+
+              {loading ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: 7 }).map((_, i) => (
+                      <div key={i} className="h-4 shimmer rounded" />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: 28 }).map((_, i) => (
+                      <div key={i} className="aspect-square shimmer rounded-xl" />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Grid del Calendario */}
+                  <div>
+                    {/* Headers L M M J V S D */}
+                    <div className="grid grid-cols-7 gap-2 mb-2 text-center">
+                      {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
+                        <span key={i} className="text-[10px] text-muted-foreground/60 font-bold uppercase py-1">
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Celdas */}
+                    <div className="grid grid-cols-7 gap-2">
+                      {gridCells.map((cell) => {
+                        if (!cell.day || !cell.dateStr) {
+                          return <div key={cell.key} className="aspect-square" />;
+                        }
+
+                        const dayGastos = gastos.filter(g => g.fecha === cell.dateStr);
+                        const tieneGastos = dayGastos.length > 0;
+                        const isSelected = activeDay === cell.dateStr;
+                        
+                        const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+                        const esDiaHoy = cell.dateStr === hoyStr;
+
+                        return (
+                          <button
+                            key={cell.key}
+                            onClick={() => setActiveDay(isSelected ? null : cell.dateStr)}
+                            className={`aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-semibold relative transition-all active:scale-95 ${
+                              isSelected
+                                ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/25 scale-105'
+                                : esDiaHoy
+                                ? 'bg-primary/10 border border-primary/45 text-primary hover:bg-primary/20'
+                                : 'hover:bg-white/[0.04] text-foreground/80'
+                            }`}
+                          >
+                            <span>{cell.day}</span>
+                            {tieneGastos && (
+                              <span className={`absolute bottom-1.5 w-1 h-1 rounded-full ${
+                                isSelected ? 'bg-primary-foreground' : 'bg-primary'
+                              }`} />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Detalle del Día Seleccionado */}
+                  {activeDay && (
+                    <div className="pt-4 border-t border-border/30 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[11px] font-bold text-muted-foreground/80 uppercase tracking-wider">
+                          Detalle: {formatFechaPretty(activeDay)}
+                        </p>
+                        <button 
+                          onClick={() => setActiveDay(null)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-all"
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+
+                      {(() => {
+                        const dayGastos = gastos.filter(g => g.fecha === activeDay);
+                        if (dayGastos.length === 0) {
+                          return (
+                            <div className="bg-white/[0.01] border border-border/10 rounded-2xl p-4 text-center">
+                              <p className="text-xs text-muted-foreground">Sin gastos registrados este día</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+                            {dayGastos.map((g) => (
+                              <div 
+                                key={g.id} 
+                                className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-border/20 hover:bg-white/[0.04] transition-all"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xl w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center border border-border/10">
+                                    {catMap[g.categoria] ?? '📦'}
+                                  </span>
+                                  <div>
+                                    <p className="text-xs font-semibold text-foreground">{g.descripcion}</p>
+                                    <p className="text-[10px] text-muted-foreground/80">{g.categoria}</p>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-bold text-red-300">
+                                  {formatMonto(g.monto)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
