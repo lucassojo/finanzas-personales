@@ -152,45 +152,21 @@ export default function ResumenClient() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-6 pt-10 pb-6 border-b border-border/30">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Resumen 📊</h1>
-          {/* Selector de mes — inline en desktop */}
-          <div className="glass-card rounded-2xl flex items-center gap-3 px-4 py-2.5">
-            <button
-              id="prev-mes"
-              onClick={() => navegarMes(-1)}
-              className="touch-feedback w-8 h-8 rounded-xl bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <div className="text-center min-w-[110px]">
-              <p className="font-semibold text-sm">{getNombreMes(mes)} {anio}</p>
-              {esHoy && <p className="text-[10px] text-primary">Mes actual</p>}
-            </div>
-            <button
-              id="next-mes"
-              onClick={() => navegarMes(1)}
-              disabled={esHoy}
-              className="touch-feedback w-8 h-8 rounded-xl bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all disabled:opacity-30"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+      <header className="px-6 pt-10 pb-4 border-b border-border/30">
+        <h1 className="text-3xl font-bold">Resumen 📊</h1>
       </header>
 
-      {/* Mobile: selector mes */}
-      <div className="md:hidden px-5 mb-5">
+      {/* Selector de mes */}
+      <div className="px-5 pt-4 pb-1">
         <div className="glass-card rounded-2xl flex items-center justify-between px-4 py-3">
-          <button id="prev-mes-mobile" onClick={() => navegarMes(-1)} className="touch-feedback w-9 h-9 rounded-xl bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all">
+          <button id="prev-mes" onClick={() => navegarMes(-1)} className="touch-feedback w-9 h-9 rounded-xl bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all">
             <ChevronLeft size={18} />
           </button>
           <div className="text-center">
             <p className="font-semibold text-base">{getNombreMes(mes)} {anio}</p>
             {esHoy && <p className="text-xs text-primary">Mes actual</p>}
           </div>
-          <button id="next-mes-mobile" onClick={() => navegarMes(1)} disabled={esHoy} className="touch-feedback w-9 h-9 rounded-xl bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all disabled:opacity-30">
+          <button id="next-mes" onClick={() => navegarMes(1)} disabled={esHoy} className="touch-feedback w-9 h-9 rounded-xl bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all disabled:opacity-30">
             <ChevronRight size={18} />
           </button>
         </div>
