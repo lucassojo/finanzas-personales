@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // PUT: actualizar categoría
 export async function PUT(
   req: NextRequest,
@@ -10,25 +12,37 @@ export async function PUT(
     const { nombre, emoji } = await req.json();
     const id = parseInt(params.id);
     const newNombre = nombre.trim();
+    const newEmoji = emoji.trim();
 
-    // 1. Obtener el nombre anterior
+    // 1. Obtener la categoría actual
     const oldCatResult = await db.execute({
       sql: 'SELECT nombre FROM categorias WHERE id = ?',
       args: [id]
     });
-    
+
     if (oldCatResult.rows.length === 0) {
       return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
     }
     const oldNombre = String(oldCatResult.rows[0].nombre);
 
-    // 2. Actualizar la categoría
+    // 2. Si el nombre cambia, verificar que no exista OTRA categoría activa con ese nombre
+    if (oldNombre !== newNombre) {
+      const conflicto = await db.execute({
+        sql: 'SELECT id FROM categorias WHERE nombre = ? AND activa = 1 AND id != ?',
+        args: [newNombre, id],
+      });
+      if (conflicto.rows.length > 0) {
+        return NextResponse.json({ error: 'Ya existe una categoría activa con ese nombre' }, { status: 409 });
+      }
+    }
+
+    // 3. Actualizar
     await db.execute({
       sql: 'UPDATE categorias SET nombre = ?, emoji = ? WHERE id = ?',
-      args: [newNombre, emoji.trim(), id],
+      args: [newNombre, newEmoji, id],
     });
 
-    // 3. Si el nombre cambió, actualizar todos los gastos asociados
+    // 4. Si el nombre cambió, actualizar los gastos asociados
     if (oldNombre !== newNombre) {
       await db.execute({
         sql: 'UPDATE gastos SET categoria = ? WHERE categoria = ?',
@@ -45,15 +59,16 @@ export async function PUT(
   }
 }
 
-// DELETE: desactivar categoría (soft delete)
+// DELETE: soft-delete manglando el nombre para liberar la restricción UNIQUE
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const id = parseInt(params.id);
+    // Mangle the name so the UNIQUE constraint doesn't block future categories with the same name
     await db.execute({
-      sql: 'UPDATE categorias SET activa = 0 WHERE id = ?',
+      sql: "UPDATE categorias SET activa = 0, nombre = '__del_' || id || '_' || nombre WHERE id = ?",
       args: [id],
     });
     return NextResponse.json({ ok: true });
