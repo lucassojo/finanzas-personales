@@ -25,10 +25,10 @@ export async function PUT(
     }
     const oldNombre = String(oldCatResult.rows[0].nombre);
 
-    // 2. Si el nombre cambia, verificar que no exista OTRA categoría activa con ese nombre
-    if (oldNombre !== newNombre) {
+    // 2. Si el nombre cambia, verificar que no exista OTRA categoría activa con ese nombre (case-insensitive)
+    if (oldNombre.toLowerCase() !== newNombre.toLowerCase()) {
       const conflicto = await db.execute({
-        sql: 'SELECT id FROM categorias WHERE nombre = ? AND activa = 1 AND id != ?',
+        sql: 'SELECT id FROM categorias WHERE LOWER(nombre) = LOWER(?) AND activa = 1 AND id != ?',
         args: [newNombre, id],
       });
       if (conflicto.rows.length > 0) {

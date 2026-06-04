@@ -33,25 +33,21 @@ export async function POST(req: NextRequest) {
     const nombreTrimmed = nombre.trim();
     const emojiTrimmed = emoji.trim();
 
-    // 1. Verificar si ya existe una categoría ACTIVA con ese nombre
+    // 1. Verificar si ya existe una categoría ACTIVA con ese nombre (case-insensitive)
     const existeActiva = await db.execute({
-      sql: 'SELECT id FROM categorias WHERE nombre = ? AND activa = 1',
+      sql: 'SELECT id FROM categorias WHERE LOWER(nombre) = LOWER(?) AND activa = 1',
       args: [nombreTrimmed],
     });
     if (existeActiva.rows.length > 0) {
       return NextResponse.json({ error: 'Ya existe una categoría activa con ese nombre' }, { status: 409 });
     }
 
-    // 2. Si existe inactiva (eliminada antes), reactivarla con el nuevo emoji
-    const existeInactiva = await db.execute({
-      sql: "SELECT id FROM categorias WHERE nombre LIKE ? AND activa = 0",
-      args: [`%${nombreTrimmed}%`],
-    });
-
-    // More precise: look for mangled names containing our target name
+    // 2. Buscar si existe una versión soft-deleted con ese nombre exacto (mangledName = '__del_ID_nombre')
+    // Escapamos los caracteres especiales de LIKE para el nombre
+    const escapedNombre = nombreTrimmed.replace(/[\\%_]/g, '\\$&');
     const mangledMatch = await db.execute({
-      sql: "SELECT id FROM categorias WHERE nombre LIKE ? AND activa = 0",
-      args: [`__del_%_${nombreTrimmed}`],
+      sql: "SELECT id FROM categorias WHERE nombre LIKE ? ESCAPE '\\' AND activa = 0",
+      args: [`\\_\\_del\\_%\\_${escapedNombre}`],
     });
 
     if (mangledMatch.rows.length > 0) {

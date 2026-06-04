@@ -119,11 +119,16 @@ export default function ConfigClient() {
     if (!nuevaNombre.trim()) return;
     setEditLoading(true);
     try {
-      await fetch('/api/categorias', {
+      const res = await fetch('/api/categorias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: nuevaNombre, emoji: nuevaEmoji }),
+        body: JSON.stringify({ nombre: nuevaNombre.trim(), emoji: nuevaEmoji }),
       });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Error al crear categoría');
+        return;
+      }
       await fetchCategorias();
       router.refresh();
       setNuevaSheet(false);
