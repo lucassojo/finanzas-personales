@@ -23,6 +23,8 @@ export async function setupDB() {
     `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
       ('Ocio y entretenimiento', '🎮')`,
     `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+      ('Transporte público', '🚌')`,
+    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
       ('Otros', '📦')`,
     `CREATE TABLE IF NOT EXISTS gastos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

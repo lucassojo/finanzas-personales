@@ -30,9 +30,17 @@ Respondé ÚNICAMENTE con JSON válido, sin texto extra ni backticks:
 {
   "monto": number,
   "descripcion": string (máx 40 caracteres),
-  "categoria": string (EXACTAMENTE una de: ${listaCats}),
+  "categoria": string (EXACTAMENTE una de las siguientes opciones de la lista de categorías activas: ${listaCats}),
   "metodo_pago": string ("efectivo" | "debito" | "credito" | "transferencia")
 }
+
+Guía de clasificación y jerga argentina:
+1. "bondi", "colectivo", "subte", "tren", "sube", "tarjeta sube", "taxi", "uber", "cabify", "peaje", "nafta", "gasolina", "estacionamiento" se asocian a "Transporte público" (o similar de transporte).
+2. "chino", "súper", "coto", "carrefour", "dia", "verdulería", "carnicería", "almacén", "pan", "facturas", "leche", "compras" se asocian a "Comida y súper".
+3. "birra", "cerveza", "boliche", "bar", "pedidosya", "rappi", "cena", "almuerzo en restaurant", "delivery", "mcdonalds", "burguer" se asocian a "Salidas y delivery".
+4. "netflix", "spotify", "cine", "teatro", "recital", "juego", "playstation" se asocian a "Ocio y entretenimiento".
+5. Si ninguna categoría se ajusta bien, usá la que sea más genérica o "Otros".
+
 Si hay múltiples montos (ej: "entrada 3000 + tragos 5000"), sumalos.
 Si no se menciona método de pago, usá "efectivo".`,
           },
@@ -65,9 +73,18 @@ Si no se menciona método de pago, usá "efectivo".`,
       return NextResponse.json({ error: 'No pude interpretar la respuesta', fallback: true }, { status: 500 });
     }
 
-    // Validar que la categoría existe
-    const catValida = cats.rows.some(r => r.nombre === parsed.categoria);
-    if (!catValida) {
+    // Validar que la categoría existe (insensible a mayúsculas/minúsculas y acentos)
+    const normalizeStr = (str: string) => {
+      if (!str) return '';
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    };
+    const catEncontrada = cats.rows.find(
+      r => normalizeStr(r.nombre as string) === normalizeStr(parsed.categoria)
+    );
+
+    if (catEncontrada) {
+      parsed.categoria = catEncontrada.nombre as string;
+    } else {
       parsed.categoria = 'Otros';
     }
 

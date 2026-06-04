@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const gastosSeed = [
       { fecha: fechaRelativa(0), descripcion: 'Almuerzo menú del día', categoria: 'Comida y súper', monto: 4500, metodo_pago: 'efectivo' },
       { fecha: fechaRelativa(0), descripcion: 'Café y medialunas', categoria: 'Comida y súper', monto: 2200, metodo_pago: 'efectivo' },
-      { fecha: fechaRelativa(1), descripcion: 'Uber a Palermo', categoria: 'Ocio y entretenimiento', monto: 3800, metodo_pago: 'debito' },
+      { fecha: fechaRelativa(1), descripcion: 'Uber a Palermo', categoria: 'Transporte público', monto: 3800, metodo_pago: 'debito' },
       { fecha: fechaRelativa(1), descripcion: 'Cena con amigos La Cabrera', categoria: 'Salidas y delivery', monto: 18500, metodo_pago: 'credito' },
       { fecha: fechaRelativa(2), descripcion: 'Carrefour súper semanal', categoria: 'Comida y súper', monto: 32000, metodo_pago: 'debito' },
       { fecha: fechaRelativa(3), descripcion: 'Rappi cena en casa', categoria: 'Salidas y delivery', monto: 7800, metodo_pago: 'credito' },
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       { fecha: fechaRelativa(6), descripcion: 'Pre-fiesta 15 de Lucía', categoria: 'Fiestas', monto: 12000, metodo_pago: 'transferencia' },
       { fecha: fechaRelativa(7), descripcion: 'Almuerzo con jefa', categoria: 'Comida y súper', monto: 6500, metodo_pago: 'efectivo' },
       { fecha: fechaRelativa(8), descripcion: 'Cumpleaños en Unico', categoria: 'Fiestas', monto: 22000, metodo_pago: 'credito' },
-      { fecha: fechaRelativa(10), descripcion: 'Remís aeropuerto', categoria: 'Ocio y entretenimiento', monto: 9500, metodo_pago: 'efectivo' },
+      { fecha: fechaRelativa(10), descripcion: 'Remís aeropuerto', categoria: 'Transporte público', monto: 9500, metodo_pago: 'efectivo' },
       { fecha: fechaRelativa(12), descripcion: 'Farmacity pastillas', categoria: 'Otros', monto: 5600, metodo_pago: 'debito' },
       { fecha: fechaRelativa(15), descripcion: 'Pizza + birras con pibes', categoria: 'Salidas y delivery', monto: 11000, metodo_pago: 'transferencia' },
       { fecha: fechaRelativa(20), descripcion: 'Ropa Zara Palermo', categoria: 'Otros', monto: 45000, metodo_pago: 'credito' },

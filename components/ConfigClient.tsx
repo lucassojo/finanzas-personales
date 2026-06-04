@@ -329,7 +329,7 @@ export default function ConfigClient() {
             {/* Selector emoji */}
             <div>
               <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Emoji</label>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2 items-center">
                 {EMOJIS.map(e => (
                   <button
                     key={e}
@@ -342,6 +342,16 @@ export default function ConfigClient() {
                     {e}
                   </button>
                 ))}
+                <input
+                  id="edit-emoji-custom"
+                  type="text"
+                  placeholder="Otro..."
+                  value={EMOJIS.includes(editEmoji) ? '' : editEmoji}
+                  onChange={e => setEditEmoji(e.target.value || '📦')}
+                  className={`w-16 h-10 text-center rounded-xl bg-secondary/60 border border-border text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                    !EMOJIS.includes(editEmoji) && editEmoji !== '📦' ? 'ring-2 ring-primary bg-primary/20 border-primary/50' : ''
+                  }`}
+                />
               </div>
             </div>
 
@@ -391,7 +401,7 @@ export default function ConfigClient() {
           <div className="px-6 pt-5 space-y-4">
             <div>
               <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Emoji</label>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2 items-center">
                 {EMOJIS.map(e => (
                   <button
                     key={e}
@@ -404,6 +414,16 @@ export default function ConfigClient() {
                     {e}
                   </button>
                 ))}
+                <input
+                  id="new-emoji-custom"
+                  type="text"
+                  placeholder="Otro..."
+                  value={EMOJIS.includes(nuevaEmoji) ? '' : nuevaEmoji}
+                  onChange={e => setNuevaEmoji(e.target.value || '📦')}
+                  className={`w-16 h-10 text-center rounded-xl bg-secondary/60 border border-border text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                    !EMOJIS.includes(nuevaEmoji) && nuevaEmoji !== '📦' ? 'ring-2 ring-primary bg-primary/20 border-primary/50' : ''
+                  }`}
+                />
               </div>
             </div>
 
