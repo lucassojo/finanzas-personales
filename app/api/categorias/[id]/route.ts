@@ -9,11 +9,32 @@ export async function PUT(
   try {
     const { nombre, emoji } = await req.json();
     const id = parseInt(params.id);
+    const newNombre = nombre.trim();
 
+    // 1. Obtener el nombre anterior
+    const oldCatResult = await db.execute({
+      sql: 'SELECT nombre FROM categorias WHERE id = ?',
+      args: [id]
+    });
+    
+    if (oldCatResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
+    }
+    const oldNombre = String(oldCatResult.rows[0].nombre);
+
+    // 2. Actualizar la categoría
     await db.execute({
       sql: 'UPDATE categorias SET nombre = ?, emoji = ? WHERE id = ?',
-      args: [nombre.trim(), emoji.trim(), id],
+      args: [newNombre, emoji.trim(), id],
     });
+
+    // 3. Si el nombre cambió, actualizar todos los gastos asociados
+    if (oldNombre !== newNombre) {
+      await db.execute({
+        sql: 'UPDATE gastos SET categoria = ? WHERE categoria = ?',
+        args: [newNombre, oldNombre],
+      });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
