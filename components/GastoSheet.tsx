@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-
 import { Gasto } from '@/lib/types';
 import { formatMonto } from '@/lib/helpers';
-import { Trash2, Edit3, Check } from 'lucide-react';
+import { Trash2, Edit3, Check, Clock, MessageSquare } from 'lucide-react';
 
 interface GastoSheetProps {
   gasto: Gasto;
@@ -14,6 +13,24 @@ interface GastoSheetProps {
   onOpenChange: (open: boolean) => void;
   onDelete: (id: number) => void;
   onUpdate: (gasto: Gasto) => void;
+}
+
+const METODO_LABELS: Record<string, { label: string; color: string }> = {
+  efectivo:      { label: 'Efectivo',      color: 'bg-emerald-500/15 text-emerald-400' },
+  debito:        { label: 'Débito',        color: 'bg-blue-500/15 text-blue-400' },
+  credito:       { label: 'Crédito',       color: 'bg-purple-500/15 text-purple-400' },
+  transferencia: { label: 'Transferencia', color: 'bg-amber-500/15 text-amber-400' },
+};
+
+function formatHora(created_at: string): string {
+  // created_at llega como "YYYY-MM-DD HH:MM:SS" (localtime de Turso)
+  const parts = created_at.split(' ');
+  if (parts.length < 2) return '';
+  const [h, m] = parts[1].split(':');
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
 }
 
 export default function GastoSheet({
@@ -30,6 +47,8 @@ export default function GastoSheet({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const catInfo = categorias.find(c => c.nombre === gasto.categoria);
+  const metodoInfo = METODO_LABELS[gasto.metodo_pago] ?? { label: gasto.metodo_pago, color: 'bg-secondary text-muted-foreground' };
+  const hora = formatHora(gasto.created_at);
 
   function handleClose() {
     setEditingCat(false);
@@ -84,8 +103,8 @@ export default function GastoSheet({
         <SheetHeader className="px-6 pb-4 border-b border-border/50">
           <div className="flex items-center gap-3">
             <span className="text-3xl">{catInfo?.emoji ?? '📦'}</span>
-            <div>
-              <SheetTitle className="text-left text-base font-semibold">
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="text-left text-base font-semibold truncate">
                 {gasto.descripcion}
               </SheetTitle>
               <p className="text-2xl font-bold amount-display gradient-text mt-1">
@@ -96,6 +115,37 @@ export default function GastoSheet({
         </SheetHeader>
 
         <div className="px-6 pt-5 space-y-4 overflow-y-auto">
+
+          {/* Badges: hora + método de pago */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {hora && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/70 text-xs font-medium text-muted-foreground">
+                <Clock size={12} />
+                <span>Registrado a las {hora}</span>
+              </div>
+            )}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${metodoInfo.color}`}>
+              <span>{metodoInfo.label}</span>
+            </div>
+          </div>
+
+          {/* Nota original del usuario */}
+          {gasto.nota_usuario && (
+            <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-secondary/50 border border-border/40">
+              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <MessageSquare size={15} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                  Lo que escribiste
+                </p>
+                <p className="text-sm text-foreground leading-snug italic">
+                  &ldquo;{gasto.nota_usuario}&rdquo;
+                </p>
+              </div>
+            </div>
+          )}
+
           {editingCat ? (
             <div className="space-y-3">
               <p className="text-sm font-medium text-muted-foreground">Seleccioná categoría:</p>

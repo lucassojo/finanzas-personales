@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Categoria, Ingreso, Inversion } from '@/lib/types';
@@ -8,6 +9,7 @@ import { formatMonto, getNombreMes } from '@/lib/helpers';
 import EmojiPicker from '@/components/ui/EmojiPicker';
 
 export default function ConfigClient() {
+  const router = useRouter();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [ingresos, setIngresos] = useState<Ingreso[]>([]);
   const [inversiones, setInversiones] = useState<Inversion[]>([]);
@@ -20,6 +22,7 @@ export default function ConfigClient() {
   const [editNombre, setEditNombre] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const editNombreRef = useRef<HTMLInputElement>(null);
 
   // Estado para nueva categoría
   const [nuevaSheet, setNuevaSheet] = useState(false);
@@ -50,7 +53,7 @@ export default function ConfigClient() {
   async function fetchCategorias() {
     setLoadingCats(true);
     try {
-      const res = await fetch('/api/categorias');
+      const res = await fetch(`/api/categorias?t=${Date.now()}`);
       const { categorias: c } = await res.json();
       setCategorias(c || []);
     } finally {
@@ -77,15 +80,23 @@ export default function ConfigClient() {
   }
 
   async function handleGuardarEdicion() {
-    if (!editSheet || !editNombre.trim()) return;
+    // Read directly from the ref to avoid stale closure issues with Sheet portals
+    const nombreFinal = editNombreRef.current?.value?.trim() ?? editNombre.trim();
+    if (!editSheet || !nombreFinal) return;
     setEditLoading(true);
     try {
-      await fetch(`/api/categorias/${editSheet.id}`, {
+      const res = await fetch(`/api/categorias/${editSheet.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: editNombre, emoji: editEmoji }),
+        body: JSON.stringify({ nombre: nombreFinal, emoji: editEmoji }),
       });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Error al guardar');
+        return;
+      }
       await fetchCategorias();
+      router.refresh();
       setEditSheet(null);
     } finally {
       setEditLoading(false);
@@ -99,6 +110,7 @@ export default function ConfigClient() {
     }
     await fetch(`/api/categorias/${id}`, { method: 'DELETE' });
     await fetchCategorias();
+    router.refresh();
     setDeleteConfirm(null);
     setEditSheet(null);
   }
@@ -113,6 +125,7 @@ export default function ConfigClient() {
         body: JSON.stringify({ nombre: nuevaNombre, emoji: nuevaEmoji }),
       });
       await fetchCategorias();
+      router.refresh();
       setNuevaSheet(false);
       setNuevaNombre('');
       setNuevaEmoji('📦');
@@ -137,6 +150,7 @@ export default function ConfigClient() {
         }),
       });
       await fetchIngresos();
+      router.refresh();
       setIngresoMonto('');
     } finally {
       setIngresoLoading(false);
@@ -146,6 +160,7 @@ export default function ConfigClient() {
   async function handleEliminarIngreso(id: number) {
     await fetch(`/api/ingresos?id=${id}`, { method: 'DELETE' });
     await fetchIngresos();
+    router.refresh();
   }
 
   async function fetchInversiones() {
@@ -175,6 +190,7 @@ export default function ConfigClient() {
         }),
       });
       await fetchInversiones();
+      router.refresh();
       setInversionMonto('');
     } finally {
       setInversionLoading(false);
@@ -184,6 +200,7 @@ export default function ConfigClient() {
   async function handleEliminarInversion(id: number) {
     await fetch(`/api/inversiones?id=${id}`, { method: 'DELETE' });
     await fetchInversiones();
+    router.refresh();
   }
 
   const meses = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -495,7 +512,7 @@ export default function ConfigClient() {
           <SheetHeader className="px-6 pb-4 border-b border-border/50">
             <SheetTitle>Editar categoría</SheetTitle>
           </SheetHeader>
-          <div className="px-6 pt-5 space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleGuardarEdicion(); }} className="px-6 pt-5 space-y-4">
             <div className="flex items-end gap-3">
               <div className="flex-shrink-0">
                 <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Emoji</label>
@@ -503,15 +520,17 @@ export default function ConfigClient() {
                   id="edit-emoji-picker"
                   value={editEmoji}
                   onChange={setEditEmoji}
+                  placement="top"
                 />
               </div>
               <div className="flex-1">
                 <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Nombre</label>
                 <input
                   id="edit-cat-nombre"
+                  ref={editNombreRef}
                   type="text"
-                  value={editNombre}
-                  onChange={e => setEditNombre(e.target.value)}
+                  defaultValue={editNombre}
+                  key={editSheet?.id}
                   className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
@@ -519,7 +538,7 @@ export default function ConfigClient() {
 
             <button
               id="guardar-edicion-cat"
-              onClick={handleGuardarEdicion}
+              type="submit"
               disabled={editLoading}
               className="touch-feedback w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all disabled:opacity-50"
             >
@@ -529,6 +548,7 @@ export default function ConfigClient() {
             {editSheet && (
               <button
                 id="eliminar-cat-btn"
+                type="button"
                 onClick={() => handleEliminarCategoria(editSheet.id)}
                 className={`touch-feedback w-full h-11 rounded-2xl text-sm font-semibold transition-all ${
                   deleteConfirm === editSheet.id
@@ -539,7 +559,7 @@ export default function ConfigClient() {
                 {deleteConfirm === editSheet.id ? '¿Confirmar? Tocá de nuevo' : 'Eliminar categoría'}
               </button>
             )}
-          </div>
+          </form>
         </SheetContent>
       </Sheet>
 
@@ -549,7 +569,7 @@ export default function ConfigClient() {
           <SheetHeader className="px-6 pb-4 border-b border-border/50">
             <SheetTitle>Nueva categoría</SheetTitle>
           </SheetHeader>
-          <div className="px-6 pt-5 space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleNuevaCategoria(); }} className="px-6 pt-5 space-y-4">
             <div className="flex items-end gap-3">
               <div className="flex-shrink-0">
                 <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Emoji</label>
@@ -557,6 +577,7 @@ export default function ConfigClient() {
                   id="new-emoji-picker"
                   value={nuevaEmoji}
                   onChange={setNuevaEmoji}
+                  placement="top"
                 />
               </div>
               <div className="flex-1">
@@ -574,13 +595,13 @@ export default function ConfigClient() {
 
             <button
               id="crear-categoria"
-              onClick={handleNuevaCategoria}
+              type="submit"
               disabled={editLoading || !nuevaNombre.trim()}
               className="touch-feedback w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all disabled:opacity-50"
             >
               {editLoading ? 'Creando...' : 'Crear categoría'}
             </button>
-          </div>
+          </form>
         </SheetContent>
       </Sheet>
     </div>

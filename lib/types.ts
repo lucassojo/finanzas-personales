@@ -2,6 +2,7 @@ export interface Gasto {
   id: number;
   fecha: string;
   descripcion: string;
+  nota_usuario?: string;
   categoria: string;
   monto: number;
   metodo_pago: string;

@@ -98,9 +98,9 @@ Si no se menciona método de pago, usá "efectivo".`,
 
     // Guardar en Turso
     const result = await db.execute({
-      sql: `INSERT INTO gastos (fecha, descripcion, categoria, monto, metodo_pago)
-            VALUES (?, ?, ?, ?, ?)`,
-      args: [targetFecha, parsed.descripcion.slice(0, 40), parsed.categoria, parsed.monto, parsed.metodo_pago],
+      sql: `INSERT INTO gastos (fecha, descripcion, nota_usuario, categoria, monto, metodo_pago)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [targetFecha, parsed.descripcion.slice(0, 40), texto.trim(), parsed.categoria, parsed.monto, parsed.metodo_pago],
     });
 
     const gastoId = Number(result.lastInsertRowid);
@@ -116,6 +116,7 @@ Si no se menciona método de pago, usá "efectivo".`,
       id: Number(row.id),
       fecha: String(row.fecha),
       descripcion: String(row.descripcion),
+      nota_usuario: row.nota_usuario ? String(row.nota_usuario) : undefined,
       categoria: String(row.categoria),
       monto: Number(row.monto),
       metodo_pago: String(row.metodo_pago),

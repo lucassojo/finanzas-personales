@@ -30,6 +30,7 @@ export async function setupDB() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fecha TEXT NOT NULL,
       descripcion TEXT NOT NULL,
+      nota_usuario TEXT,
       categoria TEXT NOT NULL,
       monto REAL NOT NULL,
       metodo_pago TEXT DEFAULT 'efectivo',
@@ -52,4 +53,13 @@ export async function setupDB() {
       created_at TEXT DEFAULT (datetime('now','localtime'))
     )`,
   ], 'write');
+
+  // Migration: agregar nota_usuario si no existe
+  // SQLite no tiene ADD COLUMN IF NOT EXISTS, así que capturamos el error
+  try {
+    await db.execute('ALTER TABLE gastos ADD COLUMN nota_usuario TEXT');
+  } catch {
+    // La columna ya existe, ignorar el error
+  }
 }
+

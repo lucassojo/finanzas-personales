@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
       id: Number(r.id),
       fecha: String(r.fecha),
       descripcion: String(r.descripcion),
+      nota_usuario: r.nota_usuario ? String(r.nota_usuario) : undefined,
       categoria: String(r.categoria),
       monto: Number(r.monto),
       metodo_pago: String(r.metodo_pago),
