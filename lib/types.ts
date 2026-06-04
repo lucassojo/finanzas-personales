@@ -25,6 +25,15 @@ export interface Ingreso {
   created_at: string;
 }
 
+export interface Inversion {
+  id: number;
+  mes: number;
+  anio: number;
+  descripcion: string;
+  monto: number;
+  created_at: string;
+}
+
 export interface ClasificarResponse {
   gasto?: Gasto;
   error?: string;

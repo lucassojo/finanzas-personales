@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { formatMonto, getNombreMes } from '@/lib/helpers';
-import { Gasto, ResumenCategoria, DatosDia, Categoria } from '@/lib/types';
+import { Gasto, ResumenCategoria, DatosDia, Categoria, Ingreso, Inversion } from '@/lib/types';
 
 export default function ResumenClient() {
   const ahora = new Date();
@@ -15,19 +15,28 @@ export default function ResumenClient() {
   const [anio, setAnio] = useState(ahora.getFullYear());
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [ingresos, setIngresos] = useState<Ingreso[]>([]);
+  const [inversiones, setInversiones] = useState<Inversion[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [gastosRes, catRes] = await Promise.all([
+      const [gastosRes, catRes, ingresosRes, inversionesRes] = await Promise.all([
         fetch(`/api/gastos?mes=${mes}&anio=${anio}`),
         fetch('/api/categorias'),
+        fetch('/api/ingresos'),
+        fetch('/api/inversiones'),
       ]);
       const { gastos: g } = await gastosRes.json();
       const { categorias: c } = await catRes.json();
+      const { ingresos: ing } = await ingresosRes.json();
+      const { inversiones: inv } = await inversionesRes.json();
+
       setGastos(g || []);
       setCategorias(c || []);
+      setIngresos(ing || []);
+      setInversiones(inv || []);
     } finally {
       setLoading(false);
     }
@@ -50,6 +59,11 @@ export default function ResumenClient() {
   const totalMesAnterior = gastosMesAnterior.reduce((acc, g) => acc + g.monto, 0);
   const diferencia = totalMes - totalMesAnterior;
   const pct = totalMesAnterior > 0 ? Math.abs((diferencia / totalMesAnterior) * 100).toFixed(0) : null;
+
+  // Ingresos e inversiones del mes/año seleccionado
+  const totalIngresos = ingresos.filter(i => i.mes === mes && i.anio === anio).reduce((acc, i) => acc + i.monto, 0);
+  const totalInversiones = inversiones.filter(i => i.mes === mes && i.anio === anio).reduce((acc, i) => acc + i.monto, 0);
+  const totalAhorro = totalIngresos - totalMes - totalInversiones;
 
   // Desglose por categoría
   const catMap = categorias.reduce((acc, c) => {
@@ -162,6 +176,102 @@ export default function ResumenClient() {
 
           {/* Left column */}
           <div className="space-y-5">
+            {/* Comparativa de Flujo Financiero */}
+            <div className="glass-card rounded-2xl p-6">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-3">Flujo Financiero</p>
+              
+              {loading ? (
+                <div className="space-y-3">
+                  <div className="h-20 shimmer rounded-xl" />
+                  <div className="h-10 shimmer rounded-xl" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Grid de importes */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3.5">
+                      <p className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Ingresos</p>
+                      <p className="amount-display text-xl font-bold text-emerald-300 mt-1">{formatMonto(totalIngresos)}</p>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-3.5">
+                      <p className="text-[10px] text-red-400 font-semibold uppercase tracking-wider">Gastos</p>
+                      <p className="amount-display text-xl font-bold text-red-300 mt-1">{formatMonto(totalMes)}</p>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-3.5">
+                      <p className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">Inversiones</p>
+                      <p className="amount-display text-xl font-bold text-purple-300 mt-1">{formatMonto(totalInversiones)}</p>
+                    </div>
+                    <div className={`border rounded-2xl p-3.5 ${
+                      totalAhorro >= 0 
+                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' 
+                        : 'bg-orange-500/10 border-orange-500/20 text-orange-300'
+                    }`}>
+                      <p className={`text-[10px] font-semibold uppercase tracking-wider ${
+                        totalAhorro >= 0 ? 'text-blue-400' : 'text-orange-400'
+                      }`}>Ahorro Remanente</p>
+                      <p className="amount-display text-xl font-bold mt-1">{formatMonto(totalAhorro)}</p>
+                    </div>
+                  </div>
+
+                  {/* Barra de Distribución del Sueldo */}
+                  {totalIngresos > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold">Distribución del Ingreso</p>
+                      <div className="h-4 bg-secondary rounded-full overflow-hidden flex">
+                        {/* Gastos */}
+                        <div 
+                          className="h-full bg-red-500/70 transition-all duration-500" 
+                          style={{ width: `${Math.max(0, (totalMes / totalIngresos) * 100)}%` }}
+                          title={`Gastos: ${((totalMes / totalIngresos) * 100).toFixed(0)}%`}
+                        />
+                        {/* Inversiones */}
+                        <div 
+                          className="h-full bg-purple-500/70 transition-all duration-500" 
+                          style={{ width: `${Math.max(0, (totalInversiones / totalIngresos) * 100)}%` }}
+                          title={`Inversiones: ${((totalInversiones / totalIngresos) * 100).toFixed(0)}%`}
+                        />
+                        {/* Ahorro */}
+                        {totalAhorro > 0 && (
+                          <div 
+                            className="h-full bg-blue-500/70 transition-all duration-500" 
+                            style={{ width: `${Math.max(0, (totalAhorro / totalIngresos) * 100)}%` }}
+                            title={`Ahorro: ${((totalAhorro / totalIngresos) * 100).toFixed(0)}%`}
+                          />
+                        )}
+                      </div>
+                      
+                      {/* Leyenda con porcentajes */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 justify-between text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                          <span>Gastos ({((totalMes / totalIngresos) * 100).toFixed(0)}%)</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-purple-500/70" />
+                          <span>Inversión ({((totalInversiones / totalIngresos) * 100).toFixed(0)}%)</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-blue-500/70" />
+                          <span>Ahorro ({Math.max(0, ((totalAhorro / totalIngresos) * 100)).toFixed(0)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mensaje de salud financiera */}
+                  {totalIngresos > 0 && (
+                    <div className="text-xs bg-white/[0.02] border border-border/20 rounded-xl p-3 text-muted-foreground leading-relaxed">
+                      {totalAhorro < 0 ? (
+                        <p>⚠️ **Atención**: Tus gastos e inversiones superaron tus ingresos por <span className="text-orange-400 font-bold">{formatMonto(Math.abs(totalAhorro))}</span> este mes. Revisa tus gastos fijos.</p>
+                      ) : (
+                        <p>✅ **¡Buen trabajo!** Ahorraste el <span className="text-blue-400 font-bold">{((totalAhorro / totalIngresos) * 100).toFixed(0)}%</span> e invertiste el <span className="text-purple-400 font-bold">{((totalInversiones / totalIngresos) * 100).toFixed(0)}%</span> de tus ingresos totales de este mes.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Total del mes */}
             <div className="glass-card rounded-2xl p-6">
               <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-2">Total gastado</p>

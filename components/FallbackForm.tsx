@@ -7,11 +7,12 @@ import { Gasto } from '@/lib/types';
 interface FallbackFormProps {
   textoInicial: string;
   categorias: { nombre: string; emoji: string }[];
+  fecha: string;
   onSuccess: (gasto: Gasto) => void;
   onClose: () => void;
 }
 
-export default function FallbackForm({ textoInicial, categorias, onSuccess, onClose }: FallbackFormProps) {
+export default function FallbackForm({ textoInicial, categorias, fecha, onSuccess, onClose }: FallbackFormProps) {
   const [descripcion, setDescripcion] = useState(textoInicial);
   const [monto, setMonto] = useState('');
   const [categoria, setCategoria] = useState(categorias[0]?.nombre ?? '');
@@ -32,6 +33,7 @@ export default function FallbackForm({ textoInicial, categorias, onSuccess, onCl
           monto: parseFloat(monto),
           categoria,
           metodo_pago: metodoPago,
+          fecha,
         }),
       });
       if (res.ok) {

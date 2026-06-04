@@ -4,7 +4,7 @@ import { getFechaHoy } from '@/lib/helpers';
 
 export async function POST(req: NextRequest) {
   try {
-    const { texto } = await req.json();
+    const { texto, fecha } = await req.json();
     if (!texto || typeof texto !== 'string') {
       return NextResponse.json({ error: 'Texto requerido' }, { status: 400 });
     }
@@ -94,13 +94,13 @@ Si no se menciona método de pago, usá "efectivo".`,
       parsed.metodo_pago = 'efectivo';
     }
 
-    const hoy = getFechaHoy();
+    const targetFecha = fecha || getFechaHoy();
 
     // Guardar en Turso
     const result = await db.execute({
       sql: `INSERT INTO gastos (fecha, descripcion, categoria, monto, metodo_pago)
             VALUES (?, ?, ?, ?, ?)`,
-      args: [hoy, parsed.descripcion.slice(0, 40), parsed.categoria, parsed.monto, parsed.metodo_pago],
+      args: [targetFecha, parsed.descripcion.slice(0, 40), parsed.categoria, parsed.monto, parsed.metodo_pago],
     });
 
     const gastoId = Number(result.lastInsertRowid);

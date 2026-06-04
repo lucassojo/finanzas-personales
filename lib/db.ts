@@ -43,5 +43,13 @@ export async function setupDB() {
       monto REAL NOT NULL,
       created_at TEXT DEFAULT (datetime('now','localtime'))
     )`,
+    `CREATE TABLE IF NOT EXISTS inversiones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mes INTEGER NOT NULL,
+      anio INTEGER NOT NULL,
+      descripcion TEXT NOT NULL,
+      monto REAL NOT NULL,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    )`,
   ], 'write');
 }

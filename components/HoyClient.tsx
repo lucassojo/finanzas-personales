@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, KeyboardEvent } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { Send, Sparkles, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import GastoCard from '@/components/GastoCard';
 import FallbackForm from '@/components/FallbackForm';
 import { Gasto, Categoria } from '@/lib/types';
-import { formatMonto } from '@/lib/helpers';
+import { formatMonto, getFechaHoy, getNombreMes } from '@/lib/helpers';
 
 interface HoyClientProps {
   gastosIniciales: Gasto[];
@@ -14,15 +14,74 @@ interface HoyClientProps {
 }
 
 export default function HoyClient({ gastosIniciales, categorias, totalHoy }: HoyClientProps) {
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(getFechaHoy());
   const [gastos, setGastos] = useState<Gasto[]>(gastosIniciales);
   const [texto, setTexto] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingGastos, setLoadingGastos] = useState(false);
   const [total, setTotal] = useState(totalHoy);
   const [showFallback, setShowFallback] = useState(false);
   const [newGastoId, setNewGastoId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Cargar gastos por fecha seleccionada
+  useEffect(() => {
+    let active = true;
+    async function loadGastosFecha() {
+      setLoadingGastos(true);
+      try {
+        const res = await fetch(`/api/gastos?fecha=${fechaSeleccionada}`);
+        const data = await res.json();
+        if (active) {
+          setGastos(data.gastos || []);
+          setTotal(data.gastos?.reduce((acc: number, g: Gasto) => acc + g.monto, 0) || 0);
+        }
+      } catch (err) {
+        console.error('Error al cargar gastos:', err);
+      } finally {
+        if (active) setLoadingGastos(false);
+      }
+    }
+    loadGastosFecha();
+    return () => { active = false; };
+  }, [fechaSeleccionada]);
+
+  const [year, month, day] = fechaSeleccionada.split('-').map(Number);
+  const totalDays = new Date(year, month, 0).getDate();
+
+  function navegarMes(dir: -1 | 1) {
+    const newDate = new Date(year, month - 1 + dir, 1);
+    const newY = newDate.getFullYear();
+    const newM = String(newDate.getMonth() + 1).padStart(2, '0');
+    const maxDays = new Date(newY, newDate.getMonth() + 1, 0).getDate();
+    const targetDay = Math.min(day, maxDays);
+    const newD = String(targetDay).padStart(2, '0');
+    setFechaSeleccionada(`${newY}-${newM}-${newD}`);
+  }
+
+  const getWeekday = (d: number) => {
+    const date = new Date(year, month - 1, d);
+    const letters = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    return letters[date.getDay()];
+  };
+
+  function formatFechaPretty(fechaStr: string): string {
+    const [y, m, d] = fechaStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const hoyStr = getFechaHoy();
+    
+    if (fechaStr === hoyStr) return 'Hoy 👋';
+    
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const ayerStr = ayer.toISOString().split('T')[0];
+    if (fechaStr === ayerStr) return 'Ayer 📅';
+
+    const rawStr = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return rawStr.charAt(0).toUpperCase() + rawStr.slice(1);
+  }
 
   async function handleEnviar() {
     if (!texto.trim() || loading) return;
@@ -34,7 +93,7 @@ export default function HoyClient({ gastosIniciales, categorias, totalHoy }: Hoy
       const res = await fetch('/api/clasificar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: textoEnviado }),
+        body: JSON.stringify({ texto: textoEnviado, fecha: fechaSeleccionada }),
       });
 
       if (!res.ok) {
@@ -96,35 +155,113 @@ export default function HoyClient({ gastosIniciales, categorias, totalHoy }: Hoy
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <header className="px-6 pt-10 pb-6 md:pt-10 md:pb-6 border-b border-border/30">
+      {/* Header con Navegación de Calendario */}
+      <header className="px-6 pt-8 pb-4 border-b border-border/30 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Hoy 👋
+              {formatFechaPretty(fechaSeleccionada)}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1 capitalize">
-              {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
+            
+            {/* Selector de Mes */}
+            <div className="flex items-center gap-2.5 mt-1.5">
+              <button
+                id="hoy-prev-mes"
+                type="button"
+                onClick={() => navegarMes(-1)}
+                className="touch-feedback w-7 h-7 rounded-lg bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[90px] text-center">
+                {getNombreMes(month)} {year}
+              </span>
+              <button
+                id="hoy-next-mes"
+                type="button"
+                onClick={() => navegarMes(1)}
+                className="touch-feedback w-7 h-7 rounded-lg bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all"
+              >
+                <ChevronRight size={14} />
+              </button>
+              
+              {/* Botón calendario */}
+              <button
+                id="hoy-calendar-picker"
+                type="button"
+                onClick={() => dateInputRef.current?.showPicker()}
+                className="touch-feedback w-7 h-7 rounded-lg bg-secondary/60 flex items-center justify-center hover:bg-secondary transition-all text-primary"
+              >
+                <Calendar size={14} />
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={fechaSeleccionada}
+                onChange={e => e.target.value && setFechaSeleccionada(e.target.value)}
+                className="absolute w-0 h-0 opacity-0 pointer-events-none"
+              />
+            </div>
           </div>
+          
           {/* Total hoy */}
           <div className="text-right">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mb-1">Total hoy</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mb-1">Total día</p>
             <p className="amount-display text-3xl font-bold gradient-text">
               {formatMonto(total)}
             </p>
           </div>
         </div>
+
+        {/* Barra horizontal de días */}
+        <div className="flex gap-2 overflow-x-auto py-1.5 px-0.5 scrollbar-none mask-image-edge">
+          {Array.from({ length: totalDays }, (_, i) => {
+            const d = i + 1;
+            const isSelected = d === day;
+            const wday = getWeekday(d);
+            const isWeekend = wday === 'S' || wday === 'D';
+            
+            return (
+              <button
+                key={d}
+                id={`day-nav-${d}`}
+                type="button"
+                onClick={() => {
+                  const targetFecha = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  setFechaSeleccionada(targetFecha);
+                }}
+                className={`flex-shrink-0 w-11 h-14 rounded-xl flex flex-col items-center justify-center transition-all touch-feedback ${
+                  isSelected
+                    ? 'bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25 scale-105'
+                    : 'bg-secondary/40 border border-border/20 text-muted-foreground hover:bg-secondary/70'
+                }`}
+              >
+                <span className={`text-[10px] ${
+                  isSelected ? 'text-primary-foreground/80' : isWeekend ? 'text-red-400/80' : 'text-muted-foreground/60'
+                }`}>
+                  {wday}
+                </span>
+                <span className="text-sm font-semibold mt-1">
+                  {d}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </header>
 
       {/* Feed de gastos */}
       <div ref={listRef} className="flex-1 px-6 py-5 overflow-y-auto">
-        {gastos.length === 0 ? (
+        {loadingGastos ? (
+          <div className="space-y-3 max-w-2xl">
+            {[1, 2, 3].map(i => <div key={i} className="h-16 shimmer rounded-xl" />)}
+          </div>
+        ) : gastos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="text-6xl mb-5">💸</div>
-            <p className="text-lg font-semibold text-foreground">Sin gastos hoy</p>
+            <p className="text-lg font-semibold text-foreground">Sin gastos registrados</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Escribí tu primer gasto en la barra de abajo
+              Ingresá tu gasto en la barra de abajo para esta fecha
             </p>
           </div>
         ) : (
@@ -148,6 +285,7 @@ export default function HoyClient({ gastosIniciales, categorias, totalHoy }: Hoy
         <FallbackForm
           textoInicial={texto}
           categorias={catList}
+          fecha={fechaSeleccionada}
           onSuccess={handleFallbackSuccess}
           onClose={() => setShowFallback(false)}
         />

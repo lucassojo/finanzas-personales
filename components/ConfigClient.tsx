@@ -3,16 +3,17 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Categoria, Ingreso } from '@/lib/types';
+import { Categoria, Ingreso, Inversion } from '@/lib/types';
 import { formatMonto, getNombreMes } from '@/lib/helpers';
-
-const EMOJIS = ['🛒', '🍕', '🎉', '🎮', '📦', '🚗', '🏥', '✈️', '👗', '📱', '🏠', '💡', '📚', '🐾', '💪', '🎵', '☕', '🍺', '🎬', '💊'];
+import EmojiPicker from '@/components/ui/EmojiPicker';
 
 export default function ConfigClient() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [ingresos, setIngresos] = useState<Ingreso[]>([]);
+  const [inversiones, setInversiones] = useState<Inversion[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
   const [loadingIngs, setLoadingIngs] = useState(true);
+  const [loadingInvs, setLoadingInvs] = useState(true);
 
   // Estado para editar categoría
   const [editSheet, setEditSheet] = useState<Categoria | null>(null);
@@ -36,7 +37,15 @@ export default function ConfigClient() {
   const [ingresoDesc, setIngresoDesc] = useState('Sueldo');
   const [ingresoLoading, setIngresoLoading] = useState(false);
 
-  useEffect(() => { fetchCategorias(); fetchIngresos(); }, []);
+  // Estado inversiones
+  const [inversionPanelOpen, setInversionPanelOpen] = useState(false);
+  const [inversionMes, setInversionMes] = useState(String(new Date().getMonth() + 1));
+  const [inversionAnio, setInversionAnio] = useState(String(new Date().getFullYear()));
+  const [inversionMonto, setInversionMonto] = useState('');
+  const [inversionDesc, setInversionDesc] = useState('Inversión');
+  const [inversionLoading, setInversionLoading] = useState(false);
+
+  useEffect(() => { fetchCategorias(); fetchIngresos(); fetchInversiones(); }, []);
 
   async function fetchCategorias() {
     setLoadingCats(true);
@@ -137,6 +146,44 @@ export default function ConfigClient() {
   async function handleEliminarIngreso(id: number) {
     await fetch(`/api/ingresos?id=${id}`, { method: 'DELETE' });
     await fetchIngresos();
+  }
+
+  async function fetchInversiones() {
+    setLoadingInvs(true);
+    try {
+      const res = await fetch('/api/inversiones');
+      const { inversiones: i } = await res.json();
+      setInversiones(i || []);
+    } finally {
+      setLoadingInvs(false);
+    }
+  }
+
+  async function handleRegistrarInversion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!inversionMonto) return;
+    setInversionLoading(true);
+    try {
+      await fetch('/api/inversiones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mes: Number(inversionMes),
+          anio: Number(inversionAnio),
+          descripcion: inversionDesc || 'Inversión',
+          monto: Number(inversionMonto),
+        }),
+      });
+      await fetchInversiones();
+      setInversionMonto('');
+    } finally {
+      setInversionLoading(false);
+    }
+  }
+
+  async function handleEliminarInversion(id: number) {
+    await fetch(`/api/inversiones?id=${id}`, { method: 'DELETE' });
+    await fetchInversiones();
   }
 
   const meses = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -270,6 +317,129 @@ export default function ConfigClient() {
           )}
         </section>
 
+        {/* Sección Inversiones */}
+        <section className="glass-card rounded-2xl overflow-hidden">
+          <button
+            id="toggle-inversiones"
+            type="button"
+            onClick={() => setInversionPanelOpen(p => !p)}
+            className="touch-feedback w-full flex items-center justify-between px-5 py-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                <span className="text-lg">📈</span>
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold">Inversiones</p>
+                <p className="text-xs text-muted-foreground">Registrá tus inversiones mensuales</p>
+              </div>
+            </div>
+            <ChevronDown
+              size={18}
+              className={`text-muted-foreground transition-transform duration-200 ${inversionPanelOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {inversionPanelOpen && (
+            <div className="border-t border-border/50 px-5 pb-5 pt-4 space-y-4">
+              {/* Form nuevo inversión */}
+              <form onSubmit={handleRegistrarInversion} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground font-medium">Mes</label>
+                    <select
+                      id="inversion-mes"
+                      value={inversionMes}
+                      onChange={e => setInversionMes(e.target.value)}
+                      className="mt-1 w-full h-10 px-3 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      {meses.map(m => (
+                        <option key={m} value={m}>{getNombreMes(m)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground font-medium">Año</label>
+                    <select
+                      id="inversion-anio"
+                      value={inversionAnio}
+                      onChange={e => setInversionAnio(e.target.value)}
+                      className="mt-1 w-full h-10 px-3 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      {anios.map(a => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium">Descripción</label>
+                  <input
+                    id="inversion-desc"
+                    type="text"
+                    value={inversionDesc}
+                    onChange={e => setInversionDesc(e.target.value)}
+                    placeholder="Ej: Plazo Fijo, Cedears"
+                    className="mt-1 w-full h-10 px-3 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium">Monto (ARS)</label>
+                  <input
+                    id="inversion-monto"
+                    type="number"
+                    value={inversionMonto}
+                    onChange={e => setInversionMonto(e.target.value)}
+                    placeholder="100000"
+                    min="1"
+                    className="mt-1 w-full h-10 px-3 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    required
+                  />
+                </div>
+                <button
+                  id="guardar-inversion"
+                  type="submit"
+                  disabled={inversionLoading}
+                  className="touch-feedback w-full h-11 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-all disabled:opacity-50"
+                >
+                  {inversionLoading ? 'Guardando...' : '+ Registrar inversión'}
+                </button>
+              </form>
+
+              {/* Lista de inversiones */}
+              {!loadingInvs && inversiones.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Historial</p>
+                  {inversiones.map(inv => (
+                    <div
+                      key={inv.id}
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-secondary/60"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{inv.descripcion}</p>
+                        <p className="text-xs text-muted-foreground">{getNombreMes(inv.mes)} {inv.anio}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="amount-display text-sm font-bold text-purple-400">
+                          {formatMonto(inv.monto)}
+                        </span>
+                        <button
+                          id={`delete-inversion-${inv.id}`}
+                          type="button"
+                          onClick={() => handleEliminarInversion(inv.id)}
+                          className="touch-feedback w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center"
+                        >
+                          <Trash2 size={14} className="text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Sección Categorías */}
         <section className="glass-card rounded-2xl overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-border/50">
@@ -326,44 +496,25 @@ export default function ConfigClient() {
             <SheetTitle>Editar categoría</SheetTitle>
           </SheetHeader>
           <div className="px-6 pt-5 space-y-4">
-            {/* Selector emoji */}
-            <div>
-              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Emoji</label>
-              <div className="mt-2 flex flex-wrap gap-2 items-center">
-                {EMOJIS.map(e => (
-                  <button
-                    key={e}
-                    id={`emoji-${e}`}
-                    onClick={() => setEditEmoji(e)}
-                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
-                      editEmoji === e ? 'bg-primary/30 ring-2 ring-primary' : 'bg-secondary/60'
-                    }`}
-                  >
-                    {e}
-                  </button>
-                ))}
-                <input
-                  id="edit-emoji-custom"
-                  type="text"
-                  placeholder="Otro..."
-                  value={EMOJIS.includes(editEmoji) ? '' : editEmoji}
-                  onChange={e => setEditEmoji(e.target.value || '📦')}
-                  className={`w-16 h-10 text-center rounded-xl bg-secondary/60 border border-border text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
-                    !EMOJIS.includes(editEmoji) && editEmoji !== '📦' ? 'ring-2 ring-primary bg-primary/20 border-primary/50' : ''
-                  }`}
+            <div className="flex items-end gap-3">
+              <div className="flex-shrink-0">
+                <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Emoji</label>
+                <EmojiPicker
+                  id="edit-emoji-picker"
+                  value={editEmoji}
+                  onChange={setEditEmoji}
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Nombre</label>
-              <input
-                id="edit-cat-nombre"
-                type="text"
-                value={editNombre}
-                onChange={e => setEditNombre(e.target.value)}
-                className="mt-1.5 w-full h-12 px-4 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Nombre</label>
+                <input
+                  id="edit-cat-nombre"
+                  type="text"
+                  value={editNombre}
+                  onChange={e => setEditNombre(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
             </div>
 
             <button
@@ -399,44 +550,26 @@ export default function ConfigClient() {
             <SheetTitle>Nueva categoría</SheetTitle>
           </SheetHeader>
           <div className="px-6 pt-5 space-y-4">
-            <div>
-              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Emoji</label>
-              <div className="mt-2 flex flex-wrap gap-2 items-center">
-                {EMOJIS.map(e => (
-                  <button
-                    key={e}
-                    id={`new-emoji-${e}`}
-                    onClick={() => setNuevaEmoji(e)}
-                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
-                      nuevaEmoji === e ? 'bg-primary/30 ring-2 ring-primary' : 'bg-secondary/60'
-                    }`}
-                  >
-                    {e}
-                  </button>
-                ))}
-                <input
-                  id="new-emoji-custom"
-                  type="text"
-                  placeholder="Otro..."
-                  value={EMOJIS.includes(nuevaEmoji) ? '' : nuevaEmoji}
-                  onChange={e => setNuevaEmoji(e.target.value || '📦')}
-                  className={`w-16 h-10 text-center rounded-xl bg-secondary/60 border border-border text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
-                    !EMOJIS.includes(nuevaEmoji) && nuevaEmoji !== '📦' ? 'ring-2 ring-primary bg-primary/20 border-primary/50' : ''
-                  }`}
+            <div className="flex items-end gap-3">
+              <div className="flex-shrink-0">
+                <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Emoji</label>
+                <EmojiPicker
+                  id="new-emoji-picker"
+                  value={nuevaEmoji}
+                  onChange={setNuevaEmoji}
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Nombre</label>
-              <input
-                id="nueva-cat-nombre"
-                type="text"
-                value={nuevaNombre}
-                onChange={e => setNuevaNombre(e.target.value)}
-                placeholder="Ej: Transporte"
-                className="mt-1.5 w-full h-12 px-4 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">Nombre</label>
+                <input
+                  id="nueva-cat-nombre"
+                  type="text"
+                  value={nuevaNombre}
+                  onChange={e => setNuevaNombre(e.target.value)}
+                  placeholder="Ej: Fútbol"
+                  className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
             </div>
 
             <button

@@ -5,13 +5,13 @@ import { getFechaHoy } from '@/lib/helpers';
 // POST: crear gasto manual (fallback)
 export async function POST(req: NextRequest) {
   try {
-    const { descripcion, monto, categoria, metodo_pago } = await req.json();
-    const hoy = getFechaHoy();
+    const { descripcion, monto, categoria, metodo_pago, fecha } = await req.json();
+    const targetFecha = fecha || getFechaHoy();
 
     const result = await db.execute({
       sql: `INSERT INTO gastos (fecha, descripcion, categoria, monto, metodo_pago)
             VALUES (?, ?, ?, ?, ?)`,
-      args: [hoy, descripcion.slice(0, 40), categoria, Number(monto), metodo_pago || 'efectivo'],
+      args: [targetFecha, descripcion.slice(0, 40), categoria, Number(monto), metodo_pago || 'efectivo'],
     });
 
     const gastoId = Number(result.lastInsertRowid);
@@ -38,17 +38,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET: obtener gastos por mes/año
+// GET: obtener gastos por mes/año o fecha específica
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const mes = searchParams.get('mes');
     const anio = searchParams.get('anio');
+    const fecha = searchParams.get('fecha');
 
     let sql: string;
     let args: (string | number)[];
 
-    if (mes && anio) {
+    if (fecha) {
+      sql = `SELECT * FROM gastos WHERE fecha = ? ORDER BY created_at DESC`;
+      args = [fecha];
+    } else if (mes && anio) {
       const mesNum = mes.padStart(2, '0');
       sql = `SELECT * FROM gastos WHERE fecha LIKE ? ORDER BY fecha DESC, created_at DESC`;
       args = [`${anio}-${mesNum}-%`];
