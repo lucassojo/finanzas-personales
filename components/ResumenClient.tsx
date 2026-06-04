@@ -280,7 +280,7 @@ export default function ResumenClient() {
               {loading ? (
                 <div className="h-12 w-44 shimmer rounded-xl" />
               ) : (
-                <p className="amount-display text-5xl font-bold gradient-text">
+                <p className="amount-display text-4xl sm:text-5xl font-bold gradient-text pr-1 truncate pb-1">
                   {formatMonto(totalMes)}
                 </p>
               )}
