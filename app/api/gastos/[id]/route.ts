@@ -1,19 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// PATCH: actualizar categoría de un gasto
+// PATCH: actualizar categoría o monto de un gasto
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { categoria } = await req.json();
+    const { categoria, monto } = await req.json();
     const id = parseInt(params.id);
 
-    await db.execute({
-      sql: 'UPDATE gastos SET categoria = ? WHERE id = ?',
-      args: [categoria, id],
-    });
+    const updates = [];
+    const args = [];
+    if (categoria !== undefined) {
+      updates.push('categoria = ?');
+      args.push(categoria);
+    }
+    if (monto !== undefined) {
+      updates.push('monto = ?');
+      args.push(monto);
+    }
+
+    if (updates.length > 0) {
+      args.push(id);
+      await db.execute({
+        sql: `UPDATE gastos SET ${updates.join(', ')} WHERE id = ?`,
+        args: args,
+      });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Gasto } from '@/lib/types';
 import { formatMonto } from '@/lib/helpers';
@@ -41,24 +41,39 @@ export default function GastoSheet({
   onDelete,
   onUpdate,
 }: GastoSheetProps) {
-  const [editingCat, setEditingCat] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [selectedCat, setSelectedCat] = useState(gasto.categoria);
+  const [editMonto, setEditMonto] = useState(String(gasto.monto));
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSelectedCat(gasto.categoria);
+      setEditMonto(String(gasto.monto));
+      setEditing(false);
+      setConfirmDelete(false);
+    }
+  }, [open, gasto]);
 
   const catInfo = categorias.find(c => c.nombre === gasto.categoria);
   const metodoInfo = METODO_LABELS[gasto.metodo_pago] ?? { label: gasto.metodo_pago, color: 'bg-secondary text-muted-foreground' };
   const hora = formatHora(gasto.created_at);
 
   function handleClose() {
-    setEditingCat(false);
+    setEditing(false);
     setConfirmDelete(false);
     onOpenChange(false);
   }
 
-  async function handleUpdateCategoria() {
-    if (selectedCat === gasto.categoria) {
-      setEditingCat(false);
+  async function handleUpdateGasto() {
+    const numMonto = Number(editMonto);
+    if (isNaN(numMonto) || numMonto <= 0) {
+       alert('Monto inválido');
+       return;
+    }
+    if (selectedCat === gasto.categoria && numMonto === gasto.monto) {
+      setEditing(false);
       return;
     }
     setLoading(true);
@@ -66,11 +81,11 @@ export default function GastoSheet({
       const res = await fetch(`/api/gastos/${gasto.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoria: selectedCat }),
+        body: JSON.stringify({ categoria: selectedCat, monto: numMonto }),
       });
       if (res.ok) {
-        onUpdate({ ...gasto, categoria: selectedCat });
-        setEditingCat(false);
+        onUpdate({ ...gasto, categoria: selectedCat, monto: numMonto });
+        setEditing(false);
         handleClose();
       }
     } finally {
@@ -146,32 +161,44 @@ export default function GastoSheet({
             </div>
           )}
 
-          {editingCat ? (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-muted-foreground">Seleccioná categoría:</p>
-              <div className="grid grid-cols-1 gap-2">
-                {categorias.map(cat => (
-                  <button
-                    key={cat.nombre}
-                    id={`cat-select-${cat.nombre.replace(/\s+/g, '-')}`}
-                    onClick={() => setSelectedCat(cat.nombre)}
-                    className={`touch-feedback flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
-                      selectedCat === cat.nombre
-                        ? 'border-primary bg-primary/10 text-foreground'
-                        : 'border-border bg-secondary/50 text-muted-foreground'
-                    }`}
-                  >
-                    <span className="text-xl">{cat.emoji}</span>
-                    <span className="text-sm font-medium">{cat.nombre}</span>
-                    {selectedCat === cat.nombre && (
-                      <Check size={16} className="ml-auto text-primary" />
-                    )}
-                  </button>
-                ))}
+          {editing ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Monto (ARS):</p>
+                <input
+                  type="number"
+                  value={editMonto}
+                  onChange={e => setEditMonto(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  min="1"
+                />
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground">Seleccioná categoría:</p>
+                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                  {categorias.map(cat => (
+                    <button
+                      key={cat.nombre}
+                      id={`cat-select-${cat.nombre.replace(/\s+/g, '-')}`}
+                      onClick={() => setSelectedCat(cat.nombre)}
+                      className={`touch-feedback flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                        selectedCat === cat.nombre
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border bg-secondary/50 text-muted-foreground'
+                      }`}
+                    >
+                      <span className="text-xl">{cat.emoji}</span>
+                      <span className="text-sm font-medium">{cat.nombre}</span>
+                      {selectedCat === cat.nombre && (
+                        <Check size={16} className="ml-auto text-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
               <button
-                id="confirm-edit-cat"
-                onClick={handleUpdateCategoria}
+                id="confirm-edit-gasto"
+                onClick={handleUpdateGasto}
                 disabled={loading}
                 className="touch-feedback w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all disabled:opacity-50"
               >
@@ -181,16 +208,16 @@ export default function GastoSheet({
           ) : (
             <>
               <button
-                id="edit-categoria-btn"
-                onClick={() => setEditingCat(true)}
+                id="edit-gasto-btn"
+                onClick={() => setEditing(true)}
                 className="touch-feedback w-full flex items-center gap-3 px-4 py-4 rounded-2xl glass-card hover:bg-white/[0.06] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
                   <Edit3 size={18} className="text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-semibold">Editar categoría</p>
-                  <p className="text-xs text-muted-foreground">Actualmente: {gasto.categoria}</p>
+                  <p className="text-sm font-semibold">Editar gasto</p>
+                  <p className="text-xs text-muted-foreground">Modificar monto o categoría</p>
                 </div>
               </button>
 
