@@ -14,18 +14,6 @@ export async function setupDB() {
       activa INTEGER NOT NULL DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now','localtime'))
     )`,
-    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
-      ('Comida y súper', '🛒')`,
-    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
-      ('Salidas y delivery', '🍕')`,
-    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
-      ('Fiestas', '🎉')`,
-    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
-      ('Ocio y entretenimiento', '🎮')`,
-    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
-      ('Transporte público', '🚌')`,
-    `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
-      ('Otros', '📦')`,
     `CREATE TABLE IF NOT EXISTS gastos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fecha TEXT NOT NULL,
@@ -54,6 +42,38 @@ export async function setupDB() {
     )`,
   ], 'write');
 
+  const countRes = await db.execute('SELECT COUNT(*) as c FROM categorias');
+  if (Number(countRes.rows[0].c) === 0) {
+    await db.batch([
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Comida y súper', '🛒')`,
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Salidas y delivery', '🍕')`,
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Fiestas', '🎉')`,
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Ocio y entretenimiento', '🎮')`,
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Transporte público', '🚌')`,
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Otros', '📦')`,
+      `INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES
+        ('Salud', '🏥')`
+    ], 'write');
+  } else {
+    // Asegurar que exista la categoría 'Salud' con '🏥' en caso de que la DB ya exista
+    try {
+      const saludActiva = await db.execute("SELECT id FROM categorias WHERE (nombre = 'Salud' OR nombre LIKE '\\_\\_del\\_\\%\\_Salud' ESCAPE '\\')");
+      if (saludActiva.rows.length === 0) {
+        await db.execute("INSERT OR IGNORE INTO categorias (nombre, emoji) VALUES ('Salud', '🏥')");
+      } else {
+        await db.execute("UPDATE categorias SET emoji = '🏥' WHERE nombre = 'Salud'");
+      }
+    } catch(e) {
+      console.error("Error asegurando categoría Salud", e);
+    }
+  }
+
   // Migration: agregar nota_usuario si no existe
   // SQLite no tiene ADD COLUMN IF NOT EXISTS, así que capturamos el error
   try {
@@ -62,4 +82,3 @@ export async function setupDB() {
     // La columna ya existe, ignorar el error
   }
 }
-
