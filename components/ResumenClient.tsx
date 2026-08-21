@@ -19,10 +19,12 @@ export default function ResumenClient() {
   const [inversiones, setInversiones] = useState<Inversion[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDay, setActiveDay] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  // Reset selected day on month change
+  // Reset selected day and category on month change
   useEffect(() => {
     setActiveDay(null);
+    setActiveCategory(null);
   }, [mes, anio]);
 
   const primerDiaMes = new Date(anio, mes - 1, 1).getDay();
@@ -342,7 +344,17 @@ export default function ResumenClient() {
           {/* Right column — Desglose por categoría y Calendario de Gastos */}
           <div className="space-y-5">
             <div className="glass-card rounded-2xl p-6">
-              <p className="text-sm font-semibold mb-5">Por categoría</p>
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-sm font-semibold">Por categoría</p>
+                {activeCategory && (
+                  <button 
+                    onClick={() => setActiveCategory(null)}
+                    className="text-xs text-primary hover:underline transition-all"
+                  >
+                    Cerrar detalle
+                  </button>
+                )}
+              </div>
               {loading ? (
                 <div className="space-y-3">
                   {[1,2,3,4].map(i => <div key={i} className="h-12 shimmer rounded-xl" />)}
@@ -353,27 +365,93 @@ export default function ResumenClient() {
                   <p className="text-sm text-muted-foreground">Sin gastos este mes</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {resumenCats.map(cat => (
-                    <div key={cat.categoria}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xl">{cat.emoji}</span>
-                          <span className="text-sm font-medium">{cat.categoria}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm font-bold amount-display">{formatMonto(cat.total)}</span>
-                          <span className="text-xs text-muted-foreground ml-1.5">{cat.porcentaje.toFixed(0)}%</span>
-                        </div>
+                <div className="space-y-3">
+                  {resumenCats.map(cat => {
+                    const isSelected = activeCategory === cat.categoria;
+                    const catGastos = gastos
+                      .filter(g => g.categoria === cat.categoria)
+                      .sort((a, b) => a.fecha.localeCompare(b.fecha)); // Orden de calendario (cronológico)
+
+                    return (
+                      <div key={cat.categoria} className="rounded-2xl transition-all border border-transparent overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setActiveCategory(isSelected ? null : cat.categoria)}
+                          className={`w-full text-left p-3 rounded-2xl transition-all active:scale-[0.99] ${
+                            isSelected
+                              ? 'bg-primary/10 border border-primary/30 shadow-sm'
+                              : 'hover:bg-white/[0.04] border border-border/10 bg-white/[0.01]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-xl">{cat.emoji}</span>
+                              <span className="text-sm font-medium">{cat.categoria}</span>
+                              <span className="text-[10px] text-muted-foreground/80 bg-secondary px-2 py-0.5 rounded-full font-mono">
+                                {catGastos.length} {catGastos.length === 1 ? 'gasto' : 'gastos'}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-sm font-bold amount-display">{formatMonto(cat.total)}</span>
+                              <span className="text-xs text-muted-foreground ml-1.5">{cat.porcentaje.toFixed(0)}%</span>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full progress-gradient rounded-full transition-all duration-700"
+                              style={{ width: `${cat.porcentaje}%` }}
+                            />
+                          </div>
+                        </button>
+
+                        {/* Desglose de gastos de esta categoría en orden de calendario */}
+                        {isSelected && (
+                          <div className="mt-2.5 p-3.5 bg-white/[0.02] border border-primary/20 rounded-2xl space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="flex items-center justify-between px-1 pb-1.5 border-b border-border/20">
+                              <p className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                                {cat.emoji} {cat.categoria} — {getNombreMes(mes)}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">Orden de calendario</p>
+                            </div>
+
+                            {catGastos.length === 0 ? (
+                              <p className="text-xs text-muted-foreground text-center py-3">No hay gastos registrados</p>
+                            ) : (
+                              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
+                                {catGastos.map((g) => {
+                                  const [, m, d] = g.fecha.split('-');
+                                  return (
+                                    <div
+                                      key={g.id}
+                                      className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-border/15 hover:bg-white/[0.06] transition-all"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-mono">
+                                          {d}/{m}
+                                        </span>
+                                        <div>
+                                          <p className="text-xs font-semibold text-foreground">{g.descripcion}</p>
+                                          {g.nota_usuario && (
+                                            <p className="text-[10px] text-muted-foreground italic truncate max-w-[200px]">{`"${g.nota_usuario}"`}</p>
+                                          )}
+                                          <p className="text-[10px] text-muted-foreground/80 capitalize">
+                                            {g.metodo_pago}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <span className="text-xs font-bold text-red-300">
+                                        {formatMonto(g.monto)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full progress-gradient rounded-full transition-all duration-700"
-                          style={{ width: `${cat.porcentaje}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
