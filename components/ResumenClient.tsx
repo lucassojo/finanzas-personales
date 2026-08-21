@@ -370,7 +370,7 @@ export default function ResumenClient() {
                     const isSelected = activeCategory === cat.categoria;
                     const catGastos = gastos
                       .filter(g => g.categoria === cat.categoria)
-                      .sort((a, b) => a.fecha.localeCompare(b.fecha)); // Orden de calendario (cronológico)
+                      .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id); // De más nuevo a más viejo
 
                     return (
                       <div key={cat.categoria} className="rounded-2xl transition-all border border-transparent overflow-hidden">
