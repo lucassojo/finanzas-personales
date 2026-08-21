@@ -8,6 +8,7 @@ import {
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { formatMonto, getNombreMes } from '@/lib/helpers';
 import { Gasto, ResumenCategoria, DatosDia, Categoria, Ingreso, Inversion } from '@/lib/types';
+import GastoSheet from '@/components/GastoSheet';
 
 export default function ResumenClient() {
   const ahora = new Date();
@@ -20,6 +21,7 @@ export default function ResumenClient() {
   const [loading, setLoading] = useState(true);
   const [activeDay, setActiveDay] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedGastoForSheet, setSelectedGastoForSheet] = useState<Gasto | null>(null);
 
   // Reset selected day and category on month change
   useEffect(() => {
@@ -420,9 +422,11 @@ export default function ResumenClient() {
                                 {catGastos.map((g) => {
                                   const [, m, d] = g.fecha.split('-');
                                   return (
-                                    <div
+                                    <button
                                       key={g.id}
-                                      className="flex items-center justify-between gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-border/15 hover:bg-white/[0.06] transition-all overflow-hidden"
+                                      type="button"
+                                      onClick={() => setSelectedGastoForSheet(g)}
+                                      className="w-full text-left flex items-center justify-between gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-border/15 hover:bg-white/[0.06] active:scale-[0.99] transition-all overflow-hidden cursor-pointer"
                                     >
                                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                         <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-mono shrink-0">
@@ -441,7 +445,7 @@ export default function ResumenClient() {
                                       <span className="text-xs font-bold text-red-300 shrink-0 whitespace-nowrap pl-1">
                                         {formatMonto(g.monto)}
                                       </span>
-                                    </div>
+                                    </button>
                                   );
                                 })}
                               </div>
@@ -561,23 +565,25 @@ export default function ResumenClient() {
                         return (
                           <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
                             {dayGastos.map((g) => (
-                              <div 
-                                key={g.id} 
-                                className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-border/20 hover:bg-white/[0.04] transition-all"
+                              <button 
+                                key={g.id}
+                                type="button"
+                                onClick={() => setSelectedGastoForSheet(g)}
+                                className="w-full text-left flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-border/20 hover:bg-white/[0.04] active:scale-[0.99] transition-all cursor-pointer"
                               >
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xl w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center border border-border/10">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <span className="text-xl w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center border border-border/10 shrink-0">
                                     {catMap[g.categoria] ?? '📦'}
                                   </span>
-                                  <div>
-                                    <p className="text-xs font-semibold text-foreground">{g.descripcion}</p>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold text-foreground truncate">{g.descripcion}</p>
                                     <p className="text-[10px] text-muted-foreground/80">{g.categoria}</p>
                                   </div>
                                 </div>
-                                <span className="text-xs font-bold text-red-300">
+                                <span className="text-xs font-bold text-red-300 shrink-0 whitespace-nowrap pl-1">
                                   {formatMonto(g.monto)}
                                 </span>
-                              </div>
+                              </button>
                             ))}
                           </div>
                         );
@@ -591,6 +597,24 @@ export default function ResumenClient() {
 
         </div>
       </div>
+
+      {/* Sheet de detalle / edición / eliminación de gasto */}
+      {selectedGastoForSheet && (
+        <GastoSheet
+          gasto={selectedGastoForSheet}
+          categorias={categorias}
+          open={!!selectedGastoForSheet}
+          onOpenChange={(open) => { if (!open) setSelectedGastoForSheet(null); }}
+          onDelete={(id) => {
+            setGastos(prev => prev.filter(g => g.id !== id));
+            setSelectedGastoForSheet(null);
+          }}
+          onUpdate={(updated) => {
+            setGastos(prev => prev.map(g => g.id === updated.id ? updated : g));
+            setSelectedGastoForSheet(null);
+          }}
+        />
+      )}
     </div>
   );
 }
