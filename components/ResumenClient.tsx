@@ -377,21 +377,21 @@ export default function ResumenClient() {
                         <button
                           type="button"
                           onClick={() => setActiveCategory(isSelected ? null : cat.categoria)}
-                          className={`w-full text-left p-3 rounded-2xl transition-all active:scale-[0.99] ${
+                          className={`w-full text-left p-3 rounded-2xl transition-all active:scale-[0.99] overflow-hidden ${
                             isSelected
                               ? 'bg-primary/10 border border-primary/30 shadow-sm'
                               : 'hover:bg-white/[0.04] border border-border/10 bg-white/[0.01]'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-xl">{cat.emoji}</span>
-                              <span className="text-sm font-medium">{cat.categoria}</span>
-                              <span className="text-[10px] text-muted-foreground/80 bg-secondary px-2 py-0.5 rounded-full font-mono">
+                          <div className="flex items-center justify-between mb-2 gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="text-xl shrink-0">{cat.emoji}</span>
+                              <span className="text-sm font-medium truncate">{cat.categoria}</span>
+                              <span className="text-[10px] text-muted-foreground/80 bg-secondary px-2 py-0.5 rounded-full font-mono shrink-0">
                                 {catGastos.length} {catGastos.length === 1 ? 'gasto' : 'gastos'}
                               </span>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right shrink-0 whitespace-nowrap">
                               <span className="text-sm font-bold amount-display">{formatMonto(cat.total)}</span>
                               <span className="text-xs text-muted-foreground ml-1.5">{cat.porcentaje.toFixed(0)}%</span>
                             </div>
@@ -404,42 +404,41 @@ export default function ResumenClient() {
                           </div>
                         </button>
 
-                        {/* Desglose de gastos de esta categoría en orden de calendario */}
+                        {/* Desglose de gastos de esta categoría */}
                         {isSelected && (
-                          <div className="mt-2.5 p-3.5 bg-white/[0.02] border border-primary/20 rounded-2xl space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="mt-2.5 p-3.5 bg-white/[0.02] border border-primary/20 rounded-2xl space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
                             <div className="flex items-center justify-between px-1 pb-1.5 border-b border-border/20">
-                              <p className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                              <p className="text-[11px] font-bold text-primary uppercase tracking-wider truncate">
                                 {cat.emoji} {cat.categoria} — {getNombreMes(mes)}
                               </p>
-                              <p className="text-[10px] text-muted-foreground">Orden de calendario</p>
                             </div>
 
                             {catGastos.length === 0 ? (
                               <p className="text-xs text-muted-foreground text-center py-3">No hay gastos registrados</p>
                             ) : (
-                              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
+                              <div className="space-y-2 max-h-[280px] overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin">
                                 {catGastos.map((g) => {
                                   const [, m, d] = g.fecha.split('-');
                                   return (
                                     <div
                                       key={g.id}
-                                      className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-border/15 hover:bg-white/[0.06] transition-all"
+                                      className="flex items-center justify-between gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-border/15 hover:bg-white/[0.06] transition-all overflow-hidden"
                                     >
-                                      <div className="flex items-center gap-3">
-                                        <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-mono">
+                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-mono shrink-0">
                                           {d}/{m}
                                         </span>
-                                        <div>
-                                          <p className="text-xs font-semibold text-foreground">{g.descripcion}</p>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-xs font-semibold text-foreground truncate">{g.descripcion}</p>
                                           {g.nota_usuario && (
-                                            <p className="text-[10px] text-muted-foreground italic truncate max-w-[200px]">{`"${g.nota_usuario}"`}</p>
+                                            <p className="text-[10px] text-muted-foreground italic truncate">{`"${g.nota_usuario}"`}</p>
                                           )}
-                                          <p className="text-[10px] text-muted-foreground/80 capitalize">
+                                          <p className="text-[10px] text-muted-foreground/80 capitalize truncate">
                                             {g.metodo_pago}
                                           </p>
                                         </div>
                                       </div>
-                                      <span className="text-xs font-bold text-red-300">
+                                      <span className="text-xs font-bold text-red-300 shrink-0 whitespace-nowrap pl-1">
                                         {formatMonto(g.monto)}
                                       </span>
                                     </div>
